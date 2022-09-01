@@ -33,7 +33,7 @@ export const useYnab = (token: string, selectedBudget: Budget | undefined) => {
     ) => {
       await api.importTransactions(budgetId, {
         transactions: transactions.map((transaction) => ({
-          amount: transaction.amount * 1000,
+          amount: Math.round(transaction.amount * 1000),
           account_id: accountId,
           approved: true,
           cleared: "cleared",
