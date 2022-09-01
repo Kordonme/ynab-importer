@@ -31,6 +31,10 @@ export const useYnab = (token: string, selectedBudget: Budget | undefined) => {
       accountId: string,
       transactions: Transaction[]
     ) => {
+      if (!transactions.length) {
+        throw new Error("No transactions to import");
+      }
+
       await api.importTransactions(budgetId, {
         transactions: transactions.map((transaction) => ({
           amount: Math.round(transaction.amount * 1000),
