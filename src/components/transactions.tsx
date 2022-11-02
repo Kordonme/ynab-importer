@@ -1,22 +1,80 @@
-import { Table } from "@mantine/core";
-import { useCallback, useMemo } from "react";
-import { Transaction } from "../hooks/useRawInput";
+import { Autocomplete, Table } from "@mantine/core";
+import { useCallback, useEffect, useMemo } from "react";
+import { Transaction as RawInputTransaction } from "../hooks/useRawInput";
 import { Account } from "../ynab/models/account";
+import { Category } from "../ynab/models/category";
+import { Payee } from "../ynab/models/payee";
+import { TableItem } from "../ynab/models/table-item";
+import { Transaction } from "../ynab/models/transaction";
 
 type TransactionsProps = {
-  transactions: Transaction[];
+  rawInputTransactions: RawInputTransaction[];
   account: Account | undefined;
+  payees: Payee[];
+  categories: Category[];
+  ynabTransactions: Transaction[];
+  onChange: (items: TableItem[]) => void;
 };
 
 export const Transactions = (props: TransactionsProps) => {
-  const { transactions, account } = props;
+  const {
+    rawInputTransactions,
+    account,
+    ynabTransactions,
+    categories,
+    payees,
+    onChange,
+  } = props;
+
+  const slugify = (text: string) => {
+    return (text ?? "").replace(/[^a-zA-Z]+/g, "").toLocaleLowerCase();
+  };
+
+  const balance = useMemo(() => {
+    if (!account) {
+      return undefined;
+    }
+
+    return account.cleared_balance / 1000;
+  }, [account]);
+
+  const tableItems = useMemo<TableItem[]>(() => {
+    const map = new Map<string, { payee: string; category: string }>();
+
+    for (const ynabTransaction of ynabTransactions) {
+      map.set(slugify(ynabTransaction.memo), {
+        payee: ynabTransaction.payee_name,
+        category: ynabTransaction.category_name,
+      });
+    }
+
+    map.forEach((mapItem, key) => {
+      if (
+        [
+          "Transfer",
+          "Starting Balance",
+          "Manual Balance Adjustment",
+          "Reconciliation Balance Adjustment",
+        ].find((x) => mapItem.payee.startsWith(x))
+      ) {
+        map.delete(slugify(key));
+      }
+    });
+
+    const t = rawInputTransactions.map((x) => ({
+      ...x,
+      ...map.get(slugify(x.description)),
+    }));
+
+    return t;
+  }, [rawInputTransactions, ynabTransactions]);
 
   const reversedTransactions = useMemo(() => {
-    return [...transactions].reverse();
-  }, [transactions]);
+    return [...tableItems].reverse();
+  }, [tableItems]);
 
   const runningBalance = useCallback(
-    (currentTransaction: Transaction) => {
+    (currentTransaction: TableItem) => {
       if (!account) {
         return 0;
       }
@@ -36,28 +94,42 @@ export const Transactions = (props: TransactionsProps) => {
     [reversedTransactions, account]
   );
 
-  const balance = useMemo(() => {
-    if (!account) {
-      return undefined;
-    }
-
-    return account.cleared_balance / 1000;
-  }, [account]);
+  useEffect(() => {
+    onChange(tableItems);
+  }, [onChange, tableItems]);
 
   return (
     <Table>
       <thead>
         <tr>
           <th>Date</th>
+          <th>Payee</th>
+          <th>Category</th>
           <th>Description</th>
           <th>Amount</th>
           <th>Balance</th>
         </tr>
       </thead>
       <tbody>
-        {transactions.map((transaction, index) => (
+        {tableItems.map((transaction, index) => (
           <tr key={`${index}`}>
             <td>{transaction.date.toDateString()}</td>
+            <td>
+              <Autocomplete
+                variant="default"
+                size="xs"
+                value={transaction.payee}
+                data={payees.map((x) => ({ ...x, value: x.name }))}
+              />
+            </td>
+            <td>
+              <Autocomplete
+                variant="default"
+                size="xs"
+                value={transaction.category}
+                data={categories.map((x) => ({ ...x, value: x.name }))}
+              />
+            </td>
             <td>{transaction.description}</td>
             <td
               className={transaction.amount >= 0 ? "text-green-700" : undefined}
@@ -74,7 +146,7 @@ export const Transactions = (props: TransactionsProps) => {
           </tr>
         ))}
         <tr>
-          <td colSpan={3}></td>
+          <td colSpan={5}></td>
           <td className="px-6 py-4 text-right">
             {balance?.toLocaleString("da-DK", {
               minimumFractionDigits: 2,

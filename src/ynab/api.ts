@@ -1,8 +1,10 @@
 import axios, { AxiosResponse } from "axios";
 import { AccountsDto } from "./dto/accounts-dto";
 import { BudgetsDto } from "./dto/budgets-dto";
+import { CategoriesDto } from "./dto/categories-dto";
 import { ImportDto } from "./dto/import-dto";
 import { PayeesDto } from "./dto/payees-dto";
+import { TransactionsDto } from "./dto/transactions-dto";
 import { YnabResponse } from "./ynabResponse";
 
 let ynabToken = "";
@@ -48,6 +50,18 @@ const getPayees = (budgetId: string) =>
     requests.get<PayeesDto>(`/budgets/${budgetId}/payees`)
   );
 
+const getTransactions = (budgetId: string) =>
+  unwrapAxiosResponse<TransactionsDto>(
+    requests.get<TransactionsDto>(
+      `/budgets/${budgetId}/transactions?since_date=2022-01-01`
+    )
+  );
+
+const getCategories = (budgetId: string) =>
+  unwrapAxiosResponse<CategoriesDto>(
+    requests.get<CategoriesDto>(`/budgets/${budgetId}/categories`)
+  );
+
 const importTransactions = async (budgetId: string, importDto: ImportDto) => {
   requests.post(`/budgets/${budgetId}/transactions`, importDto);
 };
@@ -56,5 +70,7 @@ export const api = {
   getBudgets,
   getAccounts,
   getPayees,
+  getTransactions,
+  getCategories,
   importTransactions,
 };

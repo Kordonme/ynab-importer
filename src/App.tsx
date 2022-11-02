@@ -20,17 +20,23 @@ import { useYnab } from "./hooks/useYnab";
 import { Account } from "./ynab/models/account";
 import { Budget } from "./ynab/models/budget";
 import { showNotification } from "@mantine/notifications";
+import { TableItem } from "./ynab/models/table-item";
 
 function App() {
   const preferredColorScheme = useColorScheme();
+  const [tableItems, setTableItems] = useState<TableItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [ynabToken, setYnabToken] = useState("");
   const [selectedBudget, setSelectedBudget] = useState<Budget>();
   const [selectedAccount, setSelectedAccount] = useState<Account>();
-  const { budgets, accounts, saveTransactions } = useYnab(
-    ynabToken,
-    selectedBudget
-  );
+  const {
+    budgets,
+    accounts,
+    payees,
+    transactions: ynabTransactions,
+    categories,
+    saveTransactions,
+  } = useYnab(ynabToken, selectedBudget);
   const [rawInput, setRawInput] = useState("");
   const transactions = useRawInput(rawInput);
 
@@ -57,11 +63,7 @@ function App() {
       }
 
       setIsSaving(true);
-      await saveTransactions(
-        selectedBudget.id,
-        selectedAccount.id,
-        transactions
-      );
+      await saveTransactions(selectedBudget.id, selectedAccount.id, tableItems);
       showNotification({
         title: "Success",
         message: "Transactions imported successfully 👍",
@@ -77,7 +79,11 @@ function App() {
     } finally {
       setIsSaving(false);
     }
-  }, [saveTransactions, selectedAccount, selectedBudget, transactions]);
+  }, [saveTransactions, selectedAccount, selectedBudget, tableItems]);
+
+  const handleTableChange = (items: TableItem[]) => {
+    setTableItems(items);
+  };
 
   return (
     <MantineProvider
@@ -154,7 +160,14 @@ function App() {
             </Footer>
           }
         >
-          <Transactions transactions={transactions} account={selectedAccount} />
+          <Transactions
+            rawInputTransactions={transactions}
+            account={selectedAccount}
+            payees={payees}
+            ynabTransactions={ynabTransactions}
+            categories={categories}
+            onChange={handleTableChange}
+          />
         </AppShell>
       </NotificationsProvider>
     </MantineProvider>

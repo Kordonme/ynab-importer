@@ -2,13 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { api, setToken } from "../ynab/api";
 import { Account } from "../ynab/models/account";
 import { Budget } from "../ynab/models/budget";
+import { Category } from "../ynab/models/category";
 import { Payee } from "../ynab/models/payee";
-import { Transaction } from "./useRawInput";
+import { TableItem } from "../ynab/models/table-item";
+import { Transaction } from "../ynab/models/transaction";
 
 export const useYnab = (token: string, selectedBudget: Budget | undefined) => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [peyees, setPayees] = useState<Payee[]>([]);
+  const [payees, setPayees] = useState<Payee[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const getAccounts = useCallback(async (budgetId: string) => {
     const request = await api.getAccounts(budgetId);
@@ -25,12 +29,23 @@ export const useYnab = (token: string, selectedBudget: Budget | undefined) => {
     setPayees(request.data.payees.filter((x) => !x.deleted));
   }, []);
 
+  const getTransactions = useCallback(async (budgetId: string) => {
+    const request = await api.getTransactions(budgetId);
+    setTransactions(request.data.transactions.filter((x) => !x.deleted));
+  }, []);
+
+  const getCategories = useCallback(async (budgetId: string) => {
+    const request = await api.getCategories(budgetId);
+    setCategories(
+      request.data.category_groups
+        .filter((x) => !x.deleted)
+        .map((x) => x.categories)
+        .flat()
+    );
+  }, []);
+
   const saveTransactions = useCallback(
-    async (
-      budgetId: string,
-      accountId: string,
-      transactions: Transaction[]
-    ) => {
+    async (budgetId: string, accountId: string, transactions: TableItem[]) => {
       if (!transactions.length) {
         throw new Error("No transactions to import");
       }
@@ -42,6 +57,8 @@ export const useYnab = (token: string, selectedBudget: Budget | undefined) => {
           approved: true,
           cleared: "cleared",
           date: transaction.date.toISOString(),
+          category_name: transaction.category,
+          payee_name: transaction.payee,
           memo: transaction.description,
         })),
       });
@@ -65,7 +82,16 @@ export const useYnab = (token: string, selectedBudget: Budget | undefined) => {
 
     getAccounts(selectedBudget.id);
     getPayees(selectedBudget.id);
-  }, [getAccounts, getPayees, selectedBudget]);
+    getTransactions(selectedBudget.id);
+    getCategories(selectedBudget.id);
+  }, [getAccounts, getCategories, getPayees, getTransactions, selectedBudget]);
 
-  return { budgets, accounts, peyees, saveTransactions };
+  return {
+    budgets,
+    accounts,
+    payees,
+    transactions,
+    categories,
+    saveTransactions,
+  };
 };
