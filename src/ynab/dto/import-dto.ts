@@ -7,7 +7,7 @@ interface ImportTransaction {
   memo: string;
   approved: boolean;
   payee_name: string | undefined;
-  category_name: string | undefined;
+  // category_name: string | undefined;
   cleared: ClearedType;
 }
 

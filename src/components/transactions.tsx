@@ -27,7 +27,8 @@ export const Transactions = (props: TransactionsProps) => {
   } = props;
 
   const slugify = (text: string) => {
-    return (text ?? "").replace(/[^a-zA-Z]+/g, "").toLocaleLowerCase();
+    return text;
+    return ((text ?? "").replace(/[^a-zA-Z]+/g, "") ?? "").toLocaleLowerCase();
   };
 
   const balance = useMemo(() => {
@@ -55,7 +56,7 @@ export const Transactions = (props: TransactionsProps) => {
           "Starting Balance",
           "Manual Balance Adjustment",
           "Reconciliation Balance Adjustment",
-        ].find((x) => mapItem.payee.startsWith(x))
+        ].find((x) => (mapItem.payee ?? "").startsWith(x))
       ) {
         map.delete(slugify(key));
       }
@@ -104,7 +105,6 @@ export const Transactions = (props: TransactionsProps) => {
         <tr>
           <th>Date</th>
           <th>Payee</th>
-          <th>Category</th>
           <th>Description</th>
           <th>Amount</th>
           <th>Balance</th>
@@ -114,22 +114,7 @@ export const Transactions = (props: TransactionsProps) => {
         {tableItems.map((transaction, index) => (
           <tr key={`${index}`}>
             <td>{transaction.date.toDateString()}</td>
-            <td>
-              <Autocomplete
-                variant="default"
-                size="xs"
-                value={transaction.payee}
-                data={payees.map((x) => ({ ...x, value: x.name }))}
-              />
-            </td>
-            <td>
-              <Autocomplete
-                variant="default"
-                size="xs"
-                value={transaction.category}
-                data={categories.map((x) => ({ ...x, value: x.name }))}
-              />
-            </td>
+            <td>{transaction.payee}</td>
             <td>{transaction.description}</td>
             <td
               className={transaction.amount >= 0 ? "text-green-700" : undefined}
@@ -146,7 +131,7 @@ export const Transactions = (props: TransactionsProps) => {
           </tr>
         ))}
         <tr>
-          <td colSpan={5}></td>
+          <td colSpan={4}></td>
           <td className="px-6 py-4 text-right">
             {balance?.toLocaleString("da-DK", {
               minimumFractionDigits: 2,
