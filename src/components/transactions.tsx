@@ -56,7 +56,7 @@ export const Transactions = (props: TransactionsProps) => {
           "Starting Balance",
           "Manual Balance Adjustment",
           "Reconciliation Balance Adjustment",
-        ].find((x) => (mapItem.payee ?? "").startsWith(x))
+        ].find((x) => (mapItem.payee ?? "")?.startsWith(x))
       ) {
         map.delete(slugify(key));
       }
