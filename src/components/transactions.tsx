@@ -117,7 +117,7 @@ export const Transactions = (props: TransactionsProps) => {
             <td>{transaction.payee}</td>
             <td>{transaction.description}</td>
             <td
-              className={transaction.amount >= 0 ? "text-green-700" : undefined}
+              className={transaction.amount >= 0 ? "text-green-800" : undefined}
             >
               {transaction.amount.toLocaleString("da-DK", {
                 minimumFractionDigits: 2,
